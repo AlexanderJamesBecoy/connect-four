@@ -1,110 +1,41 @@
 import gym
-import random
-import torch
-from torch.autograd import Variable
-
-class DQN():
-    def __init__(self, n_state, n_action, n_hidden=50, lr=0.05):
-        self.criterion = torch.nn.MSELoss()
-        self.model = torch.nn.Sequential(
-            torch.nn.Linear(n_state, n_hidden),
-            torch.nn.ReLU(),
-            torch.nn.Linear(n_hidden, n_action),
-        )
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr
-        )
-    
-    def update(self, s, y):
-        """
-        Update the weights of the DQN given a training sample
-        @param s: state
-        @param y: target value
-        """
-        y_pred = self.model(torch.Tensor(s))
-        loss = self.criterion(
-            y_pred,
-            Variable(torch.Tensor(y))
-        )
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-    def predict(self, s):
-        """
-        Compute the Q values of the state fro all actions using the learning model
-        @param s: input state
-        @return: Q values of the state for all actions
-        """
-        with torch.no_grad():
-            return self.model(torch.Tensor(s))
-
-env = gym.make("MountainCar-v0")
-
-def gen_epsilon_greedy_policy(estimator, epsilon, n_action):
-    def policy_function(state):
-        if random.random() < epsilon:
-            return random.randint(0, n_action-1)
-        else:
-            q_values = estimator.predict(state)
-            return torch.argmax(q_values).item()
-    return policy_function
-
-def q_learning(env, estimator, n_episode, n_action, gamma=1.0, epsilon=0.1, epsilon_decay=.99):
-    """
-    Deep Q-Learning using DQN
-    @param env: Gym environment
-    @param estimator: Estimator object
-    @param n_episode: number of episodes
-    @param gamma: the discount factor
-    @param epsilon: parameter for epsilon_greedy
-    @param epsilon_greedy: epsilon decreasing factor
-    """
-    for episode in range(n_episode):
-        policy = gen_epsilon_greedy_policy(estimator, epsilon, n_action)
-        state = env.reset()[0]
-        is_done = False
-        while not is_done:
-            action = policy(state)
-            next_state, reward, is_done,_,_ = env.step(action)
-            total_reward_episode[episode] += reward
-            modified_reward = next_state[0] + 0.5
-            if next_state[0] >= 0.5:
-                modified_reward += 100
-            elif next_state[0] >= 0.25:
-                modified_reward += 20
-            elif next_state[0] >= 0.1:
-                modified_reward += 10
-            elif next_state[0] >= 0:
-                modified_reward += 5
-            
-            q_values = estimator.predict(state).tolist()
-
-            if is_done:
-                q_values[action] = modified_reward
-                estimator.update(state, q_values)
-                break
-            q_values_next = estimator.predict(next_state)
-            q_values[action] = modified_reward + gamma * torch.max(q_values_next).item()
-            estimator.update(state, q_values)
-            state = next_state
-        print('Episode: {}, total reward: {}, epsilon: {}'.format(
-            episode, total_reward_episode[episode], epsilon))
-        epsilon = max(epsilon * epsilon_decay, 0.01)
-
-n_state = env.observation_space.shape[0]
-n_action = env.action_space.n
-n_hidden = 50
-lr = 0.001
-dqn = DQN(n_state, n_action, n_hidden, lr)
-
-n_episode = 1000
-total_reward_episode = [0] * n_episode
-q_learning(env, dqn, n_episode, n_action, gamma=.99, epsilon=.3)
-
+import time
+import numpy as np
 import matplotlib.pyplot as plt
-plt.plot(total_reward_episode)
-plt.title('Episode reward over time')
-plt.xlabel('Episode')
-plt.ylabel('Total reward')
-plt.show()
+import connect_four
+
+env = gym.make("connect_four/ConnectFour-v0", render_mode="human")
+num_steps = 42
+
+obs = env.reset()
+is_done = False
+found = False
+
+print("The initial observation is {}".format(obs))
+
+# for step in range(num_steps):
+#     action = env.action_space.sample()
+#     obs, reward, done, _, info = env.step(action)
+#     print("The  observation is {}".format(obs))
+#     print("The reward is {}".format(reward))
+#     env.render()
+#     time.sleep(0.001)
+#     # if done:
+#     #     env.reset()
+while not found:
+    while not is_done:
+        action = env.action_space.sample()
+        obs, reward, is_done, _, info = env.step(action)
+        print(obs)
+        print("The reward is {}".format(reward))
+        env.render()
+        time.sleep(0.001)
+        if np.abs(reward) == 10:
+            found = True
+            break
+
+        if is_done:
+            env.reset()
+            is_done = False
+
+env.close()
