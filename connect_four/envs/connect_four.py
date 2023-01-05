@@ -55,6 +55,8 @@ class ConnectFour(gym.Env):
         self._board = np.zeros(shape=(self._HEIGHT,self._WIDTH),dtype=np.uint8) # TODO
         # self._board = self.observation_space.sample()
         self._turn = 1 # Player 1 starts
+        self._connect_found = False # Boolean to determine whether a connect four is created.
+        self._connect_four = [] # A list to store the found connect four.
 
         observation = self._get_obs()
         info = self._get_info()
@@ -76,73 +78,74 @@ class ConnectFour(gym.Env):
         
         # Check whether a connect four is created or board is full.
         reward = 0
-        found = False
-        connect_found = False
+        self._connect_four = []
         for i in range(self._WIDTH-3):  # Check if the last insertion resulted in a horizontal connect four.
+            self._connect_four = []
             if np.count_nonzero(self._board[last_row,i:i+4] == self._turn) == 4:
-                connect_found = True
+                self._connect_found = True
+                for j in range(4):
+                    location = np.array([i+j,last_row])
+                    self._connect_four.append(location)
                 break
-        if not connect_found:
+        if not self._connect_found:
             for i in range(self._HEIGHT-2): # Check if the last insertion resulted in a vertical connect four.
                 if np.count_nonzero(self._board[i:i+4,action] == self._turn) == 4:
-                    connect_found = True
+                    self._connect_found = True
+                    for j in range(4):
+                        location = np.array([action,i+j])
+                        self._connect_four.append(location)
                     break
-        if not connect_found: # Check if the last insertion resulted in a diagonal top-left to bottom-right connect four
+        if not self._connect_found: # Check if the last insertion resulted in a diagonal top-left to bottom-right connect four
             rows = range(last_row-3,last_row+4)
             cols = range(action-3,action+4)
             connection = 0
+            self._connect_four = []
             for i in range(self._WIDTH):
                 if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
                     if self._board[rows[i], cols[i]] == self._turn:
                         connection += 1
+                        location = np.array([cols[i],rows[i]])
+                        self._connect_four.append(location)
                     else:
                         connection = 0
+                        self._connect_four = []
                 else:
                     connection = 0
+                    self._connect_four = []
 
                 if connection >= 4:
-                    connect_found = True
-                    print("Hello")
-                    print(rows[i])
-                    print(cols[i])
-                    found = True
+                    self._connect_found = True
                     break
-        if not connect_found: # Check if the last insertion resulted in a diagonal top-right to bottom-left connect four
+        if not self._connect_found: # Check if the last insertion resulted in a diagonal top-right to bottom-left connect four
             rows = range(last_row-3,last_row+4)
             cols = range(action+3,action-4,-1)
             connection = 0
+            self._connect_four = []
             for i in range(self._WIDTH):
                 if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
                     if self._board[rows[i], cols[i]] == self._turn:
                         connection += 1
+                        location = np.array([cols[i],rows[i]])
+                        self._connect_four.append(location)
                     else:
                         connection = 0
+                        self._connect_four = []
                 else:
                     connection = 0
+                    self._connect_four = []
 
                 if connection >= 4:
-                    connect_found = True
-                    print("Hello")
-                    print(rows[i])
-                    print(cols[i])
-                    found = True
+                    self._connect_found = True
                     break
         # TODO: Optimization
 
-
-
         is_done = False
-        if connect_found:
+        if self._connect_found:
             if self._turn == 2:
                 reward = 1
             else:
                 reward = -1
             is_done = True
-        if found:
-            if self._turn == 2:
-                reward = 10
-            else:
-                reward = -10
         elif np.count_nonzero(self._board == 0) == 0:
             is_done = True
 
@@ -165,7 +168,64 @@ class ConnectFour(gym.Env):
             return self._render_frame()
 
     def _render_frame(self):
-        pass
+        if self.window is None and self.render_mode == "human":
+            pygame.init()
+            pygame.display.init()
+            self.window = pygame.display.set_mode((self.window_size, self.window_size))
+        if self.clock is None and self.render_mode == "human":
+            self.clock = pygame.time.Clock()
+
+        canvas = pygame.Surface((self.window_size, self.window_size))
+        canvas.fill((0, 0, 255))
+        pix_square_size = (
+            self.window_size / self._WIDTH
+        ) # The size of a single grid square in pixels
+
+        # Draw the disks
+        for i in range(self._board.shape[0]):
+            for j in range(self._board.shape[1]):
+                loc = np.array([j,i+1])
+
+                color = [255,255,255]
+                if self._board[i,j] == 1:
+                    color = [255,0,0]
+                elif self._board[i,j] == 2:
+                    color = [255,255,0]
+
+                pygame.draw.circle(
+                    canvas,
+                    color,
+                    (loc + 0.5) * pix_square_size,
+                    pix_square_size / 3,
+                )
+        
+        # If connect four is created, display it
+        if self._connect_found:
+            print(self._connect_four)
+            for i in range(len(self._connect_four)):
+                pygame.draw.rect(
+                    canvas,
+                    (0, 255, 0),
+                    pygame.Rect(
+                        pix_square_size * (self._connect_four[i] + np.array([0,1])),
+                        (pix_square_size, pix_square_size),
+                    ),
+                    width=5
+                )
+
+        if self.render_mode == "human":
+            # The following line copies our drawings from `canvas` to the visible window
+            self.window.blit(canvas, canvas.get_rect())
+            pygame.event.pump()
+            pygame.display.update()
+
+            # We need to ensure that human-rendering occurs at the predefined framerate.
+            # The following line will automatically add a delay to keep the framerate stable.
+            self.clock.tick(self.metadata["render_fps"])
+        else:   # rgb_array
+            return np.transpose(
+                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
+            )
 
     def close(self):
         if self.window is not None:
