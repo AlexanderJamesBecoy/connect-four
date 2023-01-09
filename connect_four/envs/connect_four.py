@@ -77,7 +77,6 @@ class ConnectFour(gym.Env):
                 break
         
         # Check whether a connect four is created or board is full.
-        reward = 0
         self._connect_four = []
         for i in range(self._WIDTH-3):  # Check if the last insertion resulted in a horizontal connect four.
             self._connect_four = []
@@ -140,6 +139,7 @@ class ConnectFour(gym.Env):
         # TODO: Optimization
 
         is_done = False
+        reward = 0
         if self._connect_found:
             if self._turn == 2:
                 reward = 1
@@ -147,6 +147,7 @@ class ConnectFour(gym.Env):
                 reward = -1
             is_done = True
         elif np.count_nonzero(self._board == 0) == 0:
+            print("Hello")
             is_done = True
 
         # Switch player 1 and 2's turn
@@ -201,7 +202,6 @@ class ConnectFour(gym.Env):
         
         # If connect four is created, display it
         if self._connect_found:
-            print(self._connect_four)
             for i in range(len(self._connect_four)):
                 pygame.draw.rect(
                     canvas,
