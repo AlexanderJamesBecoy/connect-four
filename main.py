@@ -30,15 +30,15 @@ def q_learning(env, estimator, n_episode, gamma=1.0, epsilon=0.1, epsilon_decay=
         policy = gen_epsilon_greedy_policy(estimator, epsilon, n_action)
         state, info = env.reset()
         is_done = False
+        step = 0
 
         while not is_done:
 
             # Action of random agent
             action = env.action_space.sample()
             next_state, reward, is_done, _, info = env.step(action)
-            total_reward_episode[episode] += reward
             env.render()
-            time.sleep(0.001)
+            time.sleep(0.0001)
 
             # if not is_done:
             #     # Action of random agent
@@ -51,21 +51,15 @@ def q_learning(env, estimator, n_episode, gamma=1.0, epsilon=0.1, epsilon_decay=
             if not is_done:
                 # Action of learning agent
                 action = policy(next_state.flatten())
+                print('Episode {}: action {}'.format(episode, action))
                 next_state, reward, is_done, _, info = env.step(action)
-                total_reward_episode[episode] += reward
+                # total_reward_episode[episode] += reward
 
-                modified_reward = 0 #next_state[0] + 0.5
-                # if next_state[0] >= 0.5:
-                #     modified_reward += 100
-                # elif next_state[0] >= 0.25:
-                #     modified_reward += 20
-                # elif next_state[0] >= 0.1:
-                #     modified_reward += 10
-                # elif next_state[0] >= 0:
-                #     modified_reward += 5
+                modified_reward = reward - 0.1*step
+                total_reward_episode[episode] += modified_reward
                 q_values = estimator.predict(state.flatten()).tolist()
                 env.render()
-                time.sleep(0.001)
+                time.sleep(0.0001)
                 
                 if is_done:
                     q_values[action] = modified_reward
@@ -80,10 +74,15 @@ def q_learning(env, estimator, n_episode, gamma=1.0, epsilon=0.1, epsilon_decay=
                 estimator.update(state.flatten(), q_values)
 
             state = next_state
+            step += 1
         
         print('Episode: {}, total reward: {}, epsilon: {}'.format(
             episode, total_reward_episode[episode], epsilon
         ))
+        if episode > 0:
+            cum_total_reward_episode[episode] = total_reward_episode[episode] + total_reward_episode[episode-1]
+        else:
+            cum_total_reward_episode[episode] = total_reward_episode[episode]
         epsilon = max(epsilon * epsilon_decay, 0.01)
 
 env = gym.make("connect_four/ConnectFour-v0", render_mode="human")
@@ -97,6 +96,7 @@ dqn = DQN(n_state, n_action, n_hidden, lr)
 
 n_episode = 50
 total_reward_episode = [0] * n_episode
+cum_total_reward_episode = [0] * n_episode
 
 q_learning(env, dqn, n_episode, gamma=0.99, epsilon=0.3)
 
@@ -123,5 +123,8 @@ env.close()
 # Plot the results
 episodes = np.linspace(start=1,stop=n_episode, num=n_episode)
 plt.figure()
+plt.subplot(2,1,1)
 plt.plot(episodes, np.array(total_reward_episode))
+plt.subplot(2,1,2)
+plt.plot(episodes, np.array(cum_total_reward_episode))
 plt.show()

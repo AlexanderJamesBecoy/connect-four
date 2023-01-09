@@ -68,6 +68,7 @@ class ConnectFour(gym.Env):
 
     def step(self, action):
         # Move the inserted disk to the bottom due to gravity, start at bottom and check if it is empty.
+        # TODO: check if action is invalid
         last_row = 0
         for i in range(self._HEIGHT, 0, -1):
             if self._board[i-1, action] == 0:
@@ -142,9 +143,9 @@ class ConnectFour(gym.Env):
         reward = 0
         if self._connect_found:
             if self._turn == 2:
-                reward = 1
+                reward = 10
             else:
-                reward = -1
+                reward = -10
             is_done = True
         elif np.count_nonzero(self._board == 0) == 0:
             print("Hello")
