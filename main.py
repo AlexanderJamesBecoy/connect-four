@@ -45,16 +45,11 @@ def q_learning(env, estimator, n_episode, replay_size, gamma=1.0, epsilon=0.1, e
             if not is_done:
                 # Action of learning agent
                 state = next_state
-                # print(state)
                 action = policy(next_state.flatten())
-                # print('Episode {}: action {}'.format(episode, action))
                 next_state, reward_second, is_done, _, info = env.step(action)
-                # total_reward_episode[episode] += reward
 
-                modified_reward = reward_second# - 0.05*step
-                # print('Modified reward: {}'.format(modified_reward))
+                modified_reward = reward_first + reward_second
                 total_reward_episode[episode] += modified_reward
-                # q_values = estimator.predict(state.flatten()).tolist()
                 memory.append((state.flatten(), action, next_state.flatten(), modified_reward, is_done))
 
                 image = env.render()
@@ -63,22 +58,15 @@ def q_learning(env, estimator, n_episode, replay_size, gamma=1.0, epsilon=0.1, e
                 # plt.show()
                 
                 if is_done:
-                    # q_values[action] = modified_reward
-                    # estimator.update(state.flatten(), q_values)
                     break
 
                 estimator.replay(memory, replay_size, gamma)
 
-                # q_values_next = estimator.predict(next_state.flatten())
-                # q_values[action] = modified_reward + gamma*torch.max(q_values_next).item()
-                # estimator.update(state.flatten(), q_values)
 
                 state = next_state
             else:
-                modified_reward = reward_first# - 0.05*step
+                modified_reward = reward_first
                 total_reward_episode[episode] += modified_reward
-                # q_values[action] = modified_reward
-                # estimator.update(state.flatten(), q_values)
             
             step += 1
         

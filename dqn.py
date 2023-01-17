@@ -73,6 +73,7 @@ class DQN():
             replay_data = random.sample(memory, replay_size)
             states = []
             td_targets = []
+
             for state, action, next_state, reward, is_done in replay_data:
                 states.append(state)
                 q_values = self.predict(state).tolist()
@@ -82,9 +83,10 @@ class DQN():
                 else:
                     q_values_next = self.predict(next_state)
                     q_values[action] = reward + gamma * torch.max(q_values_next).item()
-                    td_targets.append(q_values)
+                
+                td_targets.append(q_values)
 
-                self.update(states, q_values)
+            self.update(states, td_targets)
 
     def save(self, episode_name):
         """
