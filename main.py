@@ -6,6 +6,7 @@ import connect_four
 import random
 import torch
 from dqn import DQN
+from collections import deque
 
 def gen_epsilon_greedy_policy(estimator, epsilon, n_action):
     def policy_function(state):
@@ -16,11 +17,12 @@ def gen_epsilon_greedy_policy(estimator, epsilon, n_action):
             return torch.argmax(q_values).item()
     return policy_function
 
-def q_learning(env, estimator, n_episode, gamma=1.0, epsilon=0.1, epsilon_decay=0.99):
+def q_learning(env, estimator, n_episode, replay_size, gamma=1.0, epsilon=0.1, epsilon_decay=0.99):
     """
     Deep Q-Learning using DQN
     @param env: Gym environment
     @param estimator: Estimator object
+    @param replay_size: the number of samples we use to update the model each time
     @param n_episode: number of episodes
     @param gamma: the discount factor
     @param epsilon: parameter for epsilon_greedy
@@ -35,96 +37,91 @@ def q_learning(env, estimator, n_episode, gamma=1.0, epsilon=0.1, epsilon_decay=
         while not is_done:
 
             # Action of random agent
-            action = env.action_space.sample()
-            next_state, reward, is_done, _, info = env.step(action)
+            rand_action = env.action_space.sample()
+            next_state, reward_first, is_done, _, _ = env.step(rand_action)
+            step += 1
             env.render()
-            time.sleep(0.0001)
-
-            # if not is_done:
-            #     # Action of random agent
-            #     action = env.action_space.sample()
-            #     next_state, reward, is_done, _, info = env.step(action)
-            #     total_reward_episode[episode] += reward
-            #     env.render()
-            #     time.sleep(0.1)
 
             if not is_done:
                 # Action of learning agent
+                state = next_state
+                # print(state)
                 action = policy(next_state.flatten())
-                print('Episode {}: action {}'.format(episode, action))
-                next_state, reward, is_done, _, info = env.step(action)
+                # print('Episode {}: action {}'.format(episode, action))
+                next_state, reward_second, is_done, _, info = env.step(action)
                 # total_reward_episode[episode] += reward
 
-                modified_reward = reward - 0.1*step
+                modified_reward = reward_second# - 0.05*step
+                # print('Modified reward: {}'.format(modified_reward))
                 total_reward_episode[episode] += modified_reward
-                q_values = estimator.predict(state.flatten()).tolist()
-                env.render()
-                time.sleep(0.0001)
+                # q_values = estimator.predict(state.flatten()).tolist()
+                memory.append((state.flatten(), action, next_state.flatten(), modified_reward, is_done))
+
+                image = env.render()
+                # print(type(image))
+                # plt.imshow(image)
+                # plt.show()
                 
                 if is_done:
-                    q_values[action] = modified_reward
-                    estimator.update(state.flatten(), q_values)
+                    # q_values[action] = modified_reward
+                    # estimator.update(state.flatten(), q_values)
                     break
-                q_values_next = estimator.predict(next_state.flatten())
-                # print('q_values: {}'.format(q_values))
-                # print('modified_reward: {}'.format(modified_reward))
-                # print('q_values_next: {}'.format(q_values_next))
-                # print('result: {}'.format(gamma*torch.max(q_values_next).item()))
-                q_values[action] = modified_reward + gamma*torch.max(q_values_next).item()
-                estimator.update(state.flatten(), q_values)
 
-            state = next_state
+                estimator.replay(memory, replay_size, gamma)
+
+                # q_values_next = estimator.predict(next_state.flatten())
+                # q_values[action] = modified_reward + gamma*torch.max(q_values_next).item()
+                # estimator.update(state.flatten(), q_values)
+
+                state = next_state
+            else:
+                modified_reward = reward_first# - 0.05*step
+                total_reward_episode[episode] += modified_reward
+                # q_values[action] = modified_reward
+                # estimator.update(state.flatten(), q_values)
+            
             step += 1
         
-        print('Episode: {}, total reward: {}, epsilon: {}'.format(
-            episode, total_reward_episode[episode], epsilon
+        print('Episode: {}, total reward: {}, epsilon: {}, number of steps: {}'.format(
+            episode, total_reward_episode[episode], epsilon, step
         ))
-        if episode > 0:
-            cum_total_reward_episode[episode] = total_reward_episode[episode] + total_reward_episode[episode-1]
-        else:
-            cum_total_reward_episode[episode] = total_reward_episode[episode]
+
+        if not estimator.is_loaded:
+            if (episode + 1) % 1000 == 0 and episode > 0:
+                episode_nr = int((episode + 1)/1000)
+                episode_name = str(episode_nr) + 'k'
+                estimator.save(episode_name)
+
+                filename = 'total_reward_episode_{}.txt'.format(episode_name)
+                with open(filename, 'w') as file:
+                    for total_reward in total_reward_episode:
+                        file.write('{}\n'.format(total_reward))
+                    file.close()
+
         epsilon = max(epsilon * epsilon_decay, 0.01)
 
-env = gym.make("connect_four/ConnectFour-v0", render_mode="human")
+env = gym.make("connect_four/ConnectFour-v0") # , render_mode="human"
 num_steps = int(6.0*7.0/2.0)
 
+# n_state = int(np.prod(env.observation_space.shape)*3)
 n_state = np.prod(env.observation_space.shape)
 n_action = env.action_space.n
-n_hidden = 50
-lr = 0.001
+n_hidden = 64
+lr = 0.005
+# dqn = DQN(n_state, n_action, n_hidden, lr)
 dqn = DQN(n_state, n_action, n_hidden, lr)
 
-n_episode = 50
+memory = deque(maxlen=1000)
+replay_size = 200
+n_episode = 10000
 total_reward_episode = [0] * n_episode
-cum_total_reward_episode = [0] * n_episode
 
-q_learning(env, dqn, n_episode, gamma=0.99, epsilon=0.3)
-
-# obs = env.reset()
-# is_done = False
-# found = False
-
-# print("The initial observation is {}".format(obs))
-
-# for step in range(num_steps):
-#     action = env.action_space.sample()
-#     obs, reward, done, _, info = env.step(action)
-#     print("The  observation is {}".format(obs))
-#     print("The reward is {}".format(reward))
-#     env.render()
-#     time.sleep(0.1)
-#     if done:
-#         time.sleep(5)
-#         break
-#         # env.reset()
+q_learning(env, dqn, n_episode, replay_size, gamma=0.99, epsilon=0.9, epsilon_decay=0.99)
 
 env.close()
 
 # Plot the results
 episodes = np.linspace(start=1,stop=n_episode, num=n_episode)
 plt.figure()
-plt.subplot(2,1,1)
 plt.plot(episodes, np.array(total_reward_episode))
-plt.subplot(2,1,2)
-plt.plot(episodes, np.array(cum_total_reward_episode))
 plt.show()
