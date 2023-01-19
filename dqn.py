@@ -73,7 +73,8 @@ class DQN():
                 if is_done:
                     q_values[action] += reward
                 else:
-                    q_values_next = self.target_predict(next_state).detach()
+                    # q_values_next = self.target_predict(next_state).detach()
+                    q_values_next = self.predict(next_state)
                     q_values[action] = reward + gamma * torch.max(q_values_next).item()
                 
                 td_targets.append(q_values)
@@ -100,4 +101,4 @@ class DQN():
         Save the model weights
         """
         assert self.save_mode, "Save mode is not activated. Activate this during __init__() with save=True before using this method."
-        torch.save(self.model, 'models/model_v0b_weights_{}.pth'.format(episode_name))
+        torch.save(self.model, 'models/model_v0d_weights_{}.pth'.format(episode_name))

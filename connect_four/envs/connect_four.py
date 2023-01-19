@@ -66,108 +66,175 @@ class ConnectFour(gym.Env):
 
         return observation, info
 
-    def step(self, action):
+    # def step(self, action):
 
-        # Punish
-        reward = 0
-        if np.count_nonzero(self._board[:,action] == 0) == 0:
-            reward += -2
+    #     # Punish
+    #     reward = 0
+    #     if np.count_nonzero(self._board[:,action] == 0) == 0:
+    #         reward += -50
 
-        # Move the inserted disk to the bottom due to gravity, start at bottom and check if it is empty.
-        # TODO: check if action is invalid
-        last_row = 0
-        for i in range(self._HEIGHT, 0, -1):
-            if self._board[i-1, action] == 0:
-                # Replace the value with the player's value depending on `self._turn`
-                self._board[i-1, action] = self._turn
-                last_row = i-1
-                break
+    #     # Move the inserted disk to the bottom due to gravity, start at bottom and check if it is empty.
+    #     # TODO: check if action is invalid
+    #     last_row = 0
+    #     for i in range(self._HEIGHT, 0, -1):
+    #         if self._board[i-1, action] == 0:
+    #             # Replace the value with the player's value depending on `self._turn`
+    #             self._board[i-1, action] = self._turn
+    #             last_row = i-1
+    #             break
+
+    #     new_token = (last_row, action)
+    #     print(f"Horizontal line: {self.extract_line(new_token, axis='row')}")
+    #     print(f"Vertical line: {self.extract_line(new_token, axis='col')}")
+    #     print(f"Left diagonal line: {self.extract_line(new_token, axis='ldiag')}")
+    #     print(f"Right diagonal line: {self.extract_line(new_token, axis='rdiag')}")
         
-        # Check whether a connect four is created or board is full.
-        self._connect_four = []
-        for i in range(self._WIDTH-3):  # Check if the last insertion resulted in a horizontal connect four.
-            self._connect_four = []
-            if np.count_nonzero(self._board[last_row,i:i+4] == self._turn) == 4:
-                self._connect_found = True
-                for j in range(4):
-                    location = np.array([i+j,last_row])
-                    self._connect_four.append(location)
-                break
-        if not self._connect_found:
-            for i in range(self._HEIGHT-2): # Check if the last insertion resulted in a vertical connect four.
-                if np.count_nonzero(self._board[i:i+4,action] == self._turn) == 4:
-                    self._connect_found = True
-                    for j in range(4):
-                        location = np.array([action,i+j])
-                        self._connect_four.append(location)
-                    break
-        if not self._connect_found: # Check if the last insertion resulted in a diagonal top-left to bottom-right connect four
-            rows = range(last_row-3,last_row+4)
-            cols = range(action-3,action+4)
-            connection = 0
-            self._connect_four = []
-            for i in range(self._WIDTH):
-                if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
-                    if self._board[rows[i], cols[i]] == self._turn:
-                        connection += 1
-                        location = np.array([cols[i],rows[i]])
-                        self._connect_four.append(location)
-                    else:
-                        connection = 0
-                        self._connect_four = []
-                else:
-                    connection = 0
-                    self._connect_four = []
+    #     # Check whether a connect four is created or board is full.
+    #     self._connect_four = []
+    #     for i in range(self._WIDTH-3):  # Check if the last insertion resulted in a horizontal connect four.
+    #         self._connect_four = []
+    #         if np.count_nonzero(self._board[last_row,i:i+4] == self._turn) == 4:
+    #             self._connect_found = True
+    #             for j in range(4):
+    #                 location = np.array([i+j,last_row])
+    #                 self._connect_four.append(location)
+    #             break
+    #     if not self._connect_found:
+    #         for i in range(self._HEIGHT-2): # Check if the last insertion resulted in a vertical connect four.
+    #             if np.count_nonzero(self._board[i:i+4,action] == self._turn) == 4:
+    #                 self._connect_found = True
+    #                 for j in range(4):
+    #                     location = np.array([action,i+j])
+    #                     self._connect_four.append(location)
+    #                 break
+    #     if not self._connect_found: # Check if the last insertion resulted in a diagonal top-left to bottom-right connect four
+    #         rows = range(last_row-3,last_row+4)
+    #         cols = range(action-3,action+4)
+    #         connection = 0
+    #         self._connect_four = []
+    #         for i in range(self._WIDTH):
+    #             if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
+    #                 if self._board[rows[i], cols[i]] == self._turn:
+    #                     connection += 1
+    #                     location = np.array([cols[i],rows[i]])
+    #                     self._connect_four.append(location)
+    #                 else:
+    #                     connection = 0
+    #                     self._connect_four = []
+    #             else:
+    #                 connection = 0
+    #                 self._connect_four = []
 
-                if connection >= 4:
-                    self._connect_found = True
-                    break
-        if not self._connect_found: # Check if the last insertion resulted in a diagonal top-right to bottom-left connect four
-            rows = range(last_row-3,last_row+4)
-            cols = range(action+3,action-4,-1)
-            connection = 0
-            self._connect_four = []
-            for i in range(self._WIDTH):
-                if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
-                    if self._board[rows[i], cols[i]] == self._turn:
-                        connection += 1
-                        location = np.array([cols[i],rows[i]])
-                        self._connect_four.append(location)
-                    else:
-                        connection = 0
-                        self._connect_four = []
-                else:
-                    connection = 0
-                    self._connect_four = []
+    #             if connection >= 4:
+    #                 self._connect_found = True
+    #                 break
+    #     if not self._connect_found: # Check if the last insertion resulted in a diagonal top-right to bottom-left connect four
+    #         rows = range(last_row-3,last_row+4)
+    #         cols = range(action+3,action-4,-1)
+    #         connection = 0
+    #         self._connect_four = []
+    #         for i in range(self._WIDTH):
+    #             if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
+    #                 if self._board[rows[i], cols[i]] == self._turn:
+    #                     connection += 1
+    #                     location = np.array([cols[i],rows[i]])
+    #                     self._connect_four.append(location)
+    #                 else:
+    #                     connection = 0
+    #                     self._connect_four = []
+    #             else:
+    #                 connection = 0
+    #                 self._connect_four = []
 
-                if connection >= 4:
-                    self._connect_found = True
-                    break
-        # TODO: Optimization
+    #             if connection >= 4:
+    #                 self._connect_found = True
+    #                 break
+    #     # TODO: Optimization
 
+    #     is_done = False
+    #     if self._connect_found:
+    #         if self._turn == 2:
+    #             reward += 1
+    #         else:
+    #             reward += -1
+    #         is_done = True
+    #     elif np.count_nonzero(self._board == 0) == 0:
+    #         print("Hello")
+    #         is_done = True
+
+    #     # Switch player 1 and 2's turn
+    #     if self._turn == 1:
+    #         self._turn = 2
+    #     else:
+    #         self._turn = 1
+
+    #     observation = self._get_obs()
+    #     info = self._get_info()
+        
+    #     if self.render_mode == "human":
+    #         self._render_frame()
+
+    #     return observation, reward, is_done, False, info
+    def step(self, action):
         is_done = False
-        if self._connect_found:
-            if self._turn == 2:
-                reward += 1
-            else:
-                reward += -1
-            is_done = True
-        elif np.count_nonzero(self._board == 0) == 0:
-            print("Hello")
-            is_done = True
 
-        # Switch player 1 and 2's turn
+        # Punish for choosing a full column
+        if np.count_nonzero(self._board[:,action] == 0) == 0:
+            if self._turn == 2:
+                reward = -1000
+            else:
+                reward = 0.0
+            observation = self._get_obs()
+            info = self._get_info()
+
+            return observation, reward, True, False, info
+
+        # Get new position of newly-placed token
+        new_token = self.set_token(action, self._turn)
+
+        # Extract lines
+        row = self.extract_line(new_token, axis='row')
+        col = self.extract_line(new_token, axis='col')
+        ldiag = self.extract_line(new_token, axis='ldiag')
+        rdiag = self.extract_line(new_token, axis='rdiag')
+        lines = {'row': row, 'col': col, 'ldiag': ldiag, 'rdiag': rdiag}
+
+        # Get combos
+        combos = []
+        for line in lines:
+            combo = self.find_combo(lines[line], self._turn)
+            if combo >= 4 and not is_done:
+                is_done = True
+                if self._turn == 1:
+                    reward = -100.0
+                else:
+                    reward = 50.0
+            combos.append(combo)
+
+        # Combine reward
+        rewards = np.array(combos, dtype=np.float32) - 1.0
+        if not is_done:
+            if self._turn == 2:
+                reward = np.sum(rewards)/2.0
+            else:
+                reward = np.sum(rewards)/4.0
+        9
+        # Switch players and finish
+        # TODO: Maybe switch 2 to -1
         if self._turn == 1:
             self._turn = 2
         else:
             self._turn = 1
-
         observation = self._get_obs()
         info = self._get_info()
-        
+
         if self.render_mode == "human":
             self._render_frame()
 
+        if np.count_nonzero(self._board == 0) == 0:
+            is_done = True
+
+        # Return
         return observation, reward, is_done, False, info
 
     def render(self):
@@ -237,3 +304,57 @@ class ConnectFour(gym.Env):
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
+
+    def extract_line(self, new_token, axis):
+        """
+        Extract a line that is either horizontal, vertical or diagonal where the new token is placed.
+        @param new_token: (y,x) position of a newly-placed token
+        @param axis: type of line; 'row', 'col', 'ldiag', 'rdiag'
+        @return: a list of of number ranging 0-2.
+        """
+        if axis == 'row':
+            return self._board[new_token[0]]
+        elif axis == 'col':
+            return self._board[:,new_token[1]]
+        elif axis == 'ldiag':
+            offset = new_token[1] - new_token[0]
+            line = np.diagonal(self._board, offset)
+            return line.tolist()
+        else: # axis == 'rdiag':
+            offset = -new_token[1] + self._HEIGHT - new_token[0]
+            line = np.fliplr(self._board.copy()).diagonal(offset)
+            return line.tolist()
+
+    def find_combo(self, tokens, color):
+        """
+        Obtain the maximum combo of tokens that a player made in a given line in the board.
+        @param tokens: list of colored tokens extracted from board
+        @param color: player's color
+        @return: maximum number of combo
+        """
+        max_token_combo = 0
+        token_combo = 0
+
+        for token in tokens:
+            if token == color:
+                token_combo += 1
+                max_token_combo = max(token_combo, max_token_combo)
+            else:
+                token_combo = 0
+        
+        return max_token_combo
+
+    def set_token(self, action, color):
+        """
+        Move the inserted disk to the bottom due to gravity, start at bottom and check if it is empty.
+        @param action: the chosen column of newly-placed token
+        @param color: player's color
+        @return: new token's position
+        """
+        row = 0
+        board = np.zeros((self._HEIGHT+1, self._WIDTH))
+        board[:self._HEIGHT, :self._WIDTH] = self._board
+        while(board[row+1, action] == 0 and row < self._HEIGHT - 1):
+            row += 1
+        self._board[row, action] = color
+        return (row, action)
