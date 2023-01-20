@@ -11,9 +11,10 @@ class DQN():
     Code provided by Yuxi (Hayden) Liu's PyTorch Reinforcement Learning Cookbook
     """
 
-    def __init__(self, n_state, n_action, n_hidden=50, lr=0.05, weights=None, save=True):
+    def __init__(self, name, n_state, n_action, n_hidden=50, lr=0.05, weights=None, save=True):
+        self.name = name
         self.save_mode = save
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.CrossEntropyLoss()
 
         if weights is None:
             self.model = nn.Sequential(
@@ -101,4 +102,4 @@ class DQN():
         Save the model weights
         """
         assert self.save_mode, "Save mode is not activated. Activate this during __init__() with save=True before using this method."
-        torch.save(self.model, 'models/model_v0d_weights_{}.pth'.format(episode_name))
+        torch.save(self.model, 'models/model_{}_weights_{}.pth'.format(self.name, episode_name))

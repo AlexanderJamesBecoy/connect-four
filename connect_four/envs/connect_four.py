@@ -3,6 +3,25 @@ from gym import spaces
 import pygame
 import numpy as np
 
+connect = {
+    'three': {
+        'width': 5,
+        'height': 4,
+        'combo': 3,
+    },
+    'four': {
+        'width': 7,
+        'height': 6,
+        'combo': 4,
+    },
+}
+
+reward_system = {
+    'win': 10,
+    'lose': -10,
+    'overflow': -100,
+}
+
 class ConnectFour(gym.Env):
     """
     This is a OpenAI gym environment that simulates the game Connect Four for which the reinforcement learning model will be trained on.
@@ -12,8 +31,9 @@ class ConnectFour(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode=None):
-        self._WIDTH = 7
-        self._HEIGHT = 6
+        self._WIDTH = connect['three']['width']
+        self._HEIGHT = connect['three']['height']
+        self._WIN_COMBO = connect['three']['combo']
         self._NUMBER_OF_PLAYERS = 2
         self.window_size = 512 # The size of the PyGame window
 
@@ -66,124 +86,14 @@ class ConnectFour(gym.Env):
 
         return observation, info
 
-    # def step(self, action):
-
-    #     # Punish
-    #     reward = 0
-    #     if np.count_nonzero(self._board[:,action] == 0) == 0:
-    #         reward += -50
-
-    #     # Move the inserted disk to the bottom due to gravity, start at bottom and check if it is empty.
-    #     # TODO: check if action is invalid
-    #     last_row = 0
-    #     for i in range(self._HEIGHT, 0, -1):
-    #         if self._board[i-1, action] == 0:
-    #             # Replace the value with the player's value depending on `self._turn`
-    #             self._board[i-1, action] = self._turn
-    #             last_row = i-1
-    #             break
-
-    #     new_token = (last_row, action)
-    #     print(f"Horizontal line: {self.extract_line(new_token, axis='row')}")
-    #     print(f"Vertical line: {self.extract_line(new_token, axis='col')}")
-    #     print(f"Left diagonal line: {self.extract_line(new_token, axis='ldiag')}")
-    #     print(f"Right diagonal line: {self.extract_line(new_token, axis='rdiag')}")
-        
-    #     # Check whether a connect four is created or board is full.
-    #     self._connect_four = []
-    #     for i in range(self._WIDTH-3):  # Check if the last insertion resulted in a horizontal connect four.
-    #         self._connect_four = []
-    #         if np.count_nonzero(self._board[last_row,i:i+4] == self._turn) == 4:
-    #             self._connect_found = True
-    #             for j in range(4):
-    #                 location = np.array([i+j,last_row])
-    #                 self._connect_four.append(location)
-    #             break
-    #     if not self._connect_found:
-    #         for i in range(self._HEIGHT-2): # Check if the last insertion resulted in a vertical connect four.
-    #             if np.count_nonzero(self._board[i:i+4,action] == self._turn) == 4:
-    #                 self._connect_found = True
-    #                 for j in range(4):
-    #                     location = np.array([action,i+j])
-    #                     self._connect_four.append(location)
-    #                 break
-    #     if not self._connect_found: # Check if the last insertion resulted in a diagonal top-left to bottom-right connect four
-    #         rows = range(last_row-3,last_row+4)
-    #         cols = range(action-3,action+4)
-    #         connection = 0
-    #         self._connect_four = []
-    #         for i in range(self._WIDTH):
-    #             if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
-    #                 if self._board[rows[i], cols[i]] == self._turn:
-    #                     connection += 1
-    #                     location = np.array([cols[i],rows[i]])
-    #                     self._connect_four.append(location)
-    #                 else:
-    #                     connection = 0
-    #                     self._connect_four = []
-    #             else:
-    #                 connection = 0
-    #                 self._connect_four = []
-
-    #             if connection >= 4:
-    #                 self._connect_found = True
-    #                 break
-    #     if not self._connect_found: # Check if the last insertion resulted in a diagonal top-right to bottom-left connect four
-    #         rows = range(last_row-3,last_row+4)
-    #         cols = range(action+3,action-4,-1)
-    #         connection = 0
-    #         self._connect_four = []
-    #         for i in range(self._WIDTH):
-    #             if rows[i] >= 0 and cols[i] >= 0 and rows[i] < self._HEIGHT and cols[i] < self._WIDTH:
-    #                 if self._board[rows[i], cols[i]] == self._turn:
-    #                     connection += 1
-    #                     location = np.array([cols[i],rows[i]])
-    #                     self._connect_four.append(location)
-    #                 else:
-    #                     connection = 0
-    #                     self._connect_four = []
-    #             else:
-    #                 connection = 0
-    #                 self._connect_four = []
-
-    #             if connection >= 4:
-    #                 self._connect_found = True
-    #                 break
-    #     # TODO: Optimization
-
-    #     is_done = False
-    #     if self._connect_found:
-    #         if self._turn == 2:
-    #             reward += 1
-    #         else:
-    #             reward += -1
-    #         is_done = True
-    #     elif np.count_nonzero(self._board == 0) == 0:
-    #         print("Hello")
-    #         is_done = True
-
-    #     # Switch player 1 and 2's turn
-    #     if self._turn == 1:
-    #         self._turn = 2
-    #     else:
-    #         self._turn = 1
-
-    #     observation = self._get_obs()
-    #     info = self._get_info()
-        
-    #     if self.render_mode == "human":
-    #         self._render_frame()
-
-    #     return observation, reward, is_done, False, info
     def step(self, action):
+        reward = 0.0
         is_done = False
 
         # Punish for choosing a full column
         if np.count_nonzero(self._board[:,action] == 0) == 0:
             if self._turn == 2:
-                reward = -1000
-            else:
-                reward = 0.0
+                reward += reward_system['overflow']
             observation = self._get_obs()
             info = self._get_info()
 
@@ -202,37 +112,42 @@ class ConnectFour(gym.Env):
         # Get combos
         combos = []
         for line in lines:
-            combo = self.find_combo(lines[line], self._turn)
-            if combo >= 4 and not is_done:
+            combo, combo_idxs = self.find_combo(lines[line], self._turn)
+            if combo >= self._WIN_COMBO and not is_done:
                 is_done = True
+                # self._connect_found = True
+                # if line == 'row':
+                #     self._connect_four = [new_token[0], combo_idxs[:self._WIN_COMBO]]
+                # elif line == 'col':
+                #     self._connect_four = self._board[]
+
                 if self._turn == 1:
-                    reward = -100.0
+                    reward = reward_system['lose']
                 else:
-                    reward = 50.0
+                    reward = reward_system['win']
             combos.append(combo)
 
-        # Combine reward
-        rewards = np.array(combos, dtype=np.float32) - 1.0
-        if not is_done:
-            if self._turn == 2:
-                reward = np.sum(rewards)/2.0
-            else:
-                reward = np.sum(rewards)/4.0
-        9
-        # Switch players and finish
-        # TODO: Maybe switch 2 to -1
+        # Modify reward
+        mod_reward = np.sum(np.array(combos) - 1.0)/2.0
         if self._turn == 1:
-            self._turn = 2
-        else:
-            self._turn = 1
+            mod_reward = -1*mod_reward
+        reward += mod_reward
+
+        if np.count_nonzero(self._board == 0) == 0:
+            is_done = True
+
+        # Switch players and finish
+        if not is_done:
+            if self._turn == 1:
+                self._turn = 2
+            else:
+                self._turn = 1
+
         observation = self._get_obs()
         info = self._get_info()
 
         if self.render_mode == "human":
             self._render_frame()
-
-        if np.count_nonzero(self._board == 0) == 0:
-            is_done = True
 
         # Return
         return observation, reward, is_done, False, info
@@ -330,19 +245,26 @@ class ConnectFour(gym.Env):
         Obtain the maximum combo of tokens that a player made in a given line in the board.
         @param tokens: list of colored tokens extracted from board
         @param color: player's color
-        @return: maximum number of combo
+        @return: maximum number of combo, list of indices of the largest combo
         """
+        max_tokens_combo = []
+        tokens_combo = []
         max_token_combo = 0
         token_combo = 0
 
-        for token in tokens:
+        for idx, token in enumerate(tokens):
             if token == color:
                 token_combo += 1
                 max_token_combo = max(token_combo, max_token_combo)
+                tokens_combo.append(idx)
             else:
                 token_combo = 0
+                if len(tokens_combo) > len(max_tokens_combo):
+                    max_tokens_combo = tokens_combo
+                tokens_combo = []
+
         
-        return max_token_combo
+        return max_token_combo, max_tokens_combo
 
     def set_token(self, action, color):
         """

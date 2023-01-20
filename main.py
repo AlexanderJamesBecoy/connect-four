@@ -80,36 +80,29 @@ def q_learning(env, estimator, n_episode, replay_size, target_update=10, gamma=1
                 episode_name = str(episode_nr) + '00k'
                 estimator.save(episode_name)
 
-                filename = 'total_reward_episode_v0d_{}.txt'.format(episode_name)
+                filename = 'total_reward_episode_{}_{}.txt'.format(estimator.name, episode_name)
                 with open(filename, 'w') as file:
-                    for total_reward in total_reward_episode:
-                        file.write('{}\n'.format(total_reward))
+                    for i in range(episode + 1):
+                        file.write('{}\n'.format(total_reward_episode[i]))
                     file.close()
 
-        epsilon = max(epsilon * epsilon_decay, 0.1)
+        epsilon = max(epsilon * epsilon_decay, 0.01)
 
 env = gym.make("connect_four/ConnectFour-v0") # , render_mode="human"
-num_steps = int(6.0*7.0/2.0)
 
 n_state = np.prod(env.observation_space.shape)
 n_action = env.action_space.n
 n_hidden = 50
-lr = 0.005
+lr = 0.06
 # dqn = DQN(n_state, n_action, n_hidden, lr)
-dqn = DQN(n_state, n_action, n_hidden, lr, save=True)
+dqn = DQN('v0e2', n_state, n_action, n_hidden, lr, save=True)
 
 memory = deque(maxlen=10000)
 replay_size = 20
 target_update = 10
-n_episode = 2000000
+n_episode = 10000000
 total_reward_episode = [0] * n_episode
 
 q_learning(env, dqn, n_episode, replay_size, target_update, gamma=0.9, epsilon=0.99, epsilon_decay=0.999)
 
 env.close()
-
-# # Plot the results
-# episodes = np.linspace(start=1,stop=n_episode, num=n_episode)
-# plt.figure()
-# plt.plot(episodes, np.array(total_reward_episode))
-# plt.show()
