@@ -14,11 +14,17 @@ class DQN():
     def __init__(self, name, n_state, n_action, n_hidden=50, lr=0.05, weights=None, save=True):
         self.name = name
         self.save_mode = save
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.MSELoss()
 
         if weights is None:
             self.model = nn.Sequential(
                 nn.Linear(n_state, n_hidden),
+                nn.ReLU(),
+                nn.Linear(n_hidden, n_hidden),
+                nn.ReLU(),
+                nn.Linear(n_hidden, n_hidden),
+                nn.ReLU(),
+                nn.Linear(n_hidden, n_hidden),
                 nn.ReLU(),
                 nn.Linear(n_hidden, n_hidden),
                 nn.ReLU(),

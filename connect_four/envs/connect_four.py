@@ -17,9 +17,9 @@ connect = {
 }
 
 reward_system = {
-    'win': 10,
-    'lose': -10,
-    'overflow': -100,
+    'win': 1.0,
+    'lose': -1.0,
+    'overflow': -5.0,
 }
 
 class ConnectFour(gym.Env):
@@ -31,9 +31,9 @@ class ConnectFour(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode=None):
-        self._WIDTH = connect['three']['width']
-        self._HEIGHT = connect['three']['height']
-        self._WIN_COMBO = connect['three']['combo']
+        self._WIDTH = connect['four']['width']
+        self._HEIGHT = connect['four']['height']
+        self._WIN_COMBO = connect['four']['combo']
         self._NUMBER_OF_PLAYERS = 2
         self.window_size = 512 # The size of the PyGame window
 
@@ -94,10 +94,10 @@ class ConnectFour(gym.Env):
         if np.count_nonzero(self._board[:,action] == 0) == 0:
             if self._turn == 2:
                 reward += reward_system['overflow']
-            observation = self._get_obs()
-            info = self._get_info()
+            # observation = self._get_obs()
+            # info = self._get_info()
 
-            return observation, reward, True, False, info
+            # return observation, reward, True, False, info
 
         # Get new position of newly-placed token
         new_token = self.set_token(action, self._turn)
@@ -128,7 +128,7 @@ class ConnectFour(gym.Env):
             combos.append(combo)
 
         # Modify reward
-        mod_reward = np.sum(np.array(combos) - 1.0)/2.0
+        mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
         if self._turn == 1:
             mod_reward = -1*mod_reward
         reward += mod_reward
