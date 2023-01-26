@@ -17,7 +17,7 @@ def gen_epsilon_greedy_policy(estimator, epsilon, n_action):
             return torch.argmax(q_values).item()
     return policy_function
 
-def q_learning(env, estimator, n_episode, replay_size, target_update=10, gamma=1.0, epsilon=0.1, epsilon_decay=0.99):
+def q_learning(env, estimator:DQN, n_episode, replay_size, target_update=10, gamma=1.0, epsilon=0.1, epsilon_decay=0.99):
     """
     Deep Q-Learning using DQN
     @param env: Gym environment
@@ -29,6 +29,7 @@ def q_learning(env, estimator, n_episode, replay_size, target_update=10, gamma=1
     @param epsilon: parameter for epsilon_greedy
     @param epsilon_greedy: epsilon decreasing factor
     """
+    rolling_reward = 0
     for episode in range(n_episode):
         # if episode % target_update == 0:
         #     estimator.copy_target()
@@ -70,9 +71,10 @@ def q_learning(env, estimator, n_episode, replay_size, target_update=10, gamma=1
             state = next_state
             step += 1
         
-        if (episode + 1) % 100000 == 0:
-            print('Episode: {}, total reward: {}, epsilon: {}, number of steps: {}'.format(
-                episode, total_reward_episode[episode], epsilon, step
+        # if (episode + 1) % 10 == 0:
+        rolling_reward = rolling_reward *0.99 + total_reward_episode[episode]*0.01
+        print('Episode: {}, rolling_reward {:.2f}, total reward: {:.2f}, epsilon: {}, number of steps: {}'.format(
+                episode, rolling_reward,total_reward_episode[episode], epsilon, step
             ))
 
         if estimator.save_mode:
@@ -87,7 +89,7 @@ def q_learning(env, estimator, n_episode, replay_size, target_update=10, gamma=1
                         file.write('{}\n'.format(total_reward_episode[i]))
                     file.close()
 
-        epsilon = max(epsilon * epsilon_decay, 0.01)
+        epsilon = max(epsilon * epsilon_decay, 0.05)
 
 env = gym.make("connect_four/ConnectFour-v0") # , render_mode="human"
 
@@ -104,6 +106,6 @@ target_update = 10
 n_episode = 10000000
 total_reward_episode = [0] * n_episode
 
-q_learning(env, dqn, n_episode, replay_size, target_update, gamma=0.95, epsilon=0.99, epsilon_decay=0.99999)
+q_learning(env, dqn, n_episode, replay_size, target_update, gamma=0.95, epsilon=0.99, epsilon_decay=0.995)
 
 env.close()
