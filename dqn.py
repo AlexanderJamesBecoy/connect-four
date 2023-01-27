@@ -4,6 +4,7 @@ import torch.nn.functional as Fd
 from torch.autograd import Variable
 import random
 import copy
+import numpy as np
 # import torchvision.models as models
 
 class DQN():
@@ -20,10 +21,10 @@ class DQN():
             self.model = nn.Sequential(
                 nn.Linear(n_state, n_hidden),
                 nn.ReLU(),
-                # nn.Linear(n_hidden, n_hidden),
-                # nn.ReLU(),
-                # nn.Linear(n_hidden, n_hidden),
-                # nn.ReLU(),
+                nn.Linear(n_hidden, n_hidden),
+                nn.ReLU(),
+                nn.Linear(n_hidden, n_hidden),
+                nn.ReLU(),
                 # nn.Linear(n_hidden, n_hidden),
                 # nn.ReLU(),
                 # nn.Linear(n_hidden, n_hidden),
@@ -69,24 +70,31 @@ class DQN():
         @param gamma: the discount factor
         """
         if len(memory) >= replay_size:
-            replay_data = random.sample(memory, replay_size)
-            states = []
-            td_targets = []
+            states, actions, next_states, rewards, is_dones = zip(*random.sample(memory, replay_size))
+            states = np.array(states)
+            next_states = np.array(next_states)
+            actions = list(actions)
+            is_dones = list(is_dones)
 
-            for state, action, next_state, reward, is_done in replay_data:
-                states.append(state)
-                q_values = self.predict(state).tolist()
+            q_values = self.predict(states)
+            q_values_next = self.predict(next_states)
+            q_values[:,actions] = torch.Tensor(rewards)
+            q_values[:,actions][is_dones] += gamma * torch.max(q_values_next)
+        
+            # for state, action, next_state, reward, is_done in replay_data:
+            #     states.append(state)
+            #     q_values = self.predict(state).tolist()
 
-                if is_done:
-                    q_values[action] += reward
-                else:
-                    # q_values_next = self.target_predict(next_state).detach()
-                    q_values_next = self.predict(next_state)
-                    q_values[action] = reward + gamma * torch.max(q_values_next).item()
-                
-                td_targets.append(q_values)
+            #     if is_done:
+            #         q_values[action] = reward
+            #     else:
+            #         # q_values_next = self.target_predict(next_state).detach()
+            #         q_values_next = self.predict(next_state)
+            #         q_values[action] = reward + gamma * torch.max(q_values_next).item()
+            #     
+            #     td_targets.append(q_values)
 
-            self.update(states, td_targets)
+            self.update(states, q_values)
 
     def target_predict(self, s):
         """

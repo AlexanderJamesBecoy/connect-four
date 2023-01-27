@@ -98,43 +98,43 @@ class ConnectFour(gym.Env):
             # info = self._get_info()
 
             # return observation, reward, True, False, info
+        else:
+            # Get new position of newly-placed token
+            new_token = self.set_token(action, self._turn)
 
-        # Get new position of newly-placed token
-        new_token = self.set_token(action, self._turn)
+            # Extract lines
+            row = self.extract_line(new_token, axis='row')
+            col = self.extract_line(new_token, axis='col')
+            ldiag = self.extract_line(new_token, axis='ldiag')
+            rdiag = self.extract_line(new_token, axis='rdiag')
+            lines = {'row': row, 'col': col, 'ldiag': ldiag, 'rdiag': rdiag}
 
-        # Extract lines
-        row = self.extract_line(new_token, axis='row')
-        col = self.extract_line(new_token, axis='col')
-        ldiag = self.extract_line(new_token, axis='ldiag')
-        rdiag = self.extract_line(new_token, axis='rdiag')
-        lines = {'row': row, 'col': col, 'ldiag': ldiag, 'rdiag': rdiag}
+            # Get combos
+            combos = []
+            for line in lines:
+                combo, combo_idxs = self.find_combo(lines[line], self._turn)
+                if combo >= self._WIN_COMBO and not is_done:
+                    is_done = True
+                    # self._connect_found = True
+                    # if line == 'row':
+                    #     self._connect_four = [new_token[0], combo_idxs[:self._WIN_COMBO]]
+                    # elif line == 'col':
+                    #     self._connect_four = self._board[]
 
-        # Get combos
-        combos = []
-        for line in lines:
-            combo, combo_idxs = self.find_combo(lines[line], self._turn)
-            if combo >= self._WIN_COMBO and not is_done:
+                    if self._turn == 1:
+                        reward = reward_system['lose']
+                    else:
+                        reward = reward_system['win']
+                combos.append(combo)
+
+            # Modify reward
+            mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
+            if self._turn == 1:
+                mod_reward = -1*mod_reward
+            reward += mod_reward
+
+            if np.count_nonzero(self._board == 0) == 0:
                 is_done = True
-                # self._connect_found = True
-                # if line == 'row':
-                #     self._connect_four = [new_token[0], combo_idxs[:self._WIN_COMBO]]
-                # elif line == 'col':
-                #     self._connect_four = self._board[]
-
-                if self._turn == 1:
-                    reward = reward_system['lose']
-                else:
-                    reward = reward_system['win']
-            combos.append(combo)
-
-        # Modify reward
-        mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
-        if self._turn == 1:
-            mod_reward = -1*mod_reward
-        reward += mod_reward
-
-        if np.count_nonzero(self._board == 0) == 0:
-            is_done = True
 
         # Switch players and finish
         if not is_done:
