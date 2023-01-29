@@ -30,9 +30,10 @@ def q_learning(env, estimator:DQN, n_episode, replay_size, target_update=10, gam
     @param epsilon_greedy: epsilon decreasing factor
     """
     rolling_reward = 0
+    full_columns = 0
     for episode in range(n_episode):
-        # if episode % target_update == 0:
-        #     estimator.copy_target()
+        if episode % target_update == 0:
+            estimator.copy_target()
 
         policy = gen_epsilon_greedy_policy(estimator, epsilon, n_action)
         state, info = env.reset()
@@ -71,17 +72,18 @@ def q_learning(env, estimator:DQN, n_episode, replay_size, target_update=10, gam
             state = next_state
             step += 1
         
-        # if (episode + 1) % 10 == 0:
-        rolling_reward = rolling_reward *0.99 + total_reward_episode[episode]*0.01
-        print('Episode: {}, rolling_reward {:.2f}, total reward: {:.2f}, epsilon: {}, number of steps: {}'.format(
-                episode, rolling_reward,total_reward_episode[episode], epsilon, step
-            ))
+        if (episode + 1) % 10 == 0:
+            rolling_reward = rolling_reward *0.9 + total_reward_episode[episode]*0.1
+            print('Episode: {}, rolling_reward {:.2f}, total reward: {:.2f}, epsilon: {}, number of steps: {}, full columns: {}'.format(
+                    episode, rolling_reward,total_reward_episode[episode], epsilon, step, full_columns
+                ))
+            full_columns = 0
 
         if estimator.save_mode:
             if (episode + 1) % 1000000 == 0:
                 episode_nr = int((episode + 1)/1000000)
                 episode_name = str(episode_nr) + 'M'
-                estimator.save(episode_name)
+                estimator.save_model(episode_name)
 
                 filename = 'total_reward_episode_{}_{}.txt'.format(estimator.name, episode_name)
                 with open(filename, 'w') as file:
@@ -90,6 +92,8 @@ def q_learning(env, estimator:DQN, n_episode, replay_size, target_update=10, gam
                     file.close()
 
         epsilon = max(epsilon * epsilon_decay, 0.05)
+        if total_reward_episode[episode] < -1.5:
+            full_columns += 1
 
 env = gym.make("connect_four/ConnectFour-v0") # , render_mode="human"
 

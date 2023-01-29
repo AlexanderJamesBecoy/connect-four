@@ -8,10 +8,6 @@ import numpy as np
 # import torchvision.models as models
 
 class DQN():
-    """
-    Code provided by Yuxi (Hayden) Liu's PyTorch Reinforcement Learning Cookbook
-    """
-
     def __init__(self, name, n_state, n_action, n_hidden=50, lr=0.05, weights=None, save=True):
         self.name = name
         self.save_mode = save
@@ -39,6 +35,9 @@ class DQN():
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr)
         self.model_target = copy.deepcopy(self.model)
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("Torch device: {}".format(self.device))
+
     def update(self, s, y):
     # def update(self, s, y_predict, y_target):
         """
@@ -47,8 +46,8 @@ class DQN():
         @param y: target value
         @return:
         """
-        y_pred = self.model(torch.Tensor(s))
-        loss = self.criterion(y_pred, Variable(torch.Tensor(y)))
+        y_pred = self.model(torch.Tensor(s).to(self.device))
+        loss = self.criterion(y_pred, Variable(torch.Tensor(y).to(self.device)))
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -60,7 +59,7 @@ class DQN():
         @return: Q values of the state for all actions
         """
         with torch.no_grad():
-            return self.model(torch.Tensor(s))
+            return self.model(torch.Tensor(s).to(self.device))
 
     def replay(self, memory, replay_size, gamma):
         """
@@ -77,9 +76,12 @@ class DQN():
             is_dones = list(is_dones)
 
             q_values = self.predict(states)
-            q_values_next = self.predict(next_states)
-            q_values[:,actions] = torch.Tensor(rewards)
-            q_values[:,actions][is_dones] += gamma * torch.max(q_values_next)
+            # q_values_next = self.predict(next_states)                   # Single DQN
+            q_values_next = self.target_predict(next_states).detach()   # Double DQNs
+            q_values[:,actions] = torch.Tensor(rewards).to(self.device)
+            for i, is_done in enumerate(is_dones):
+                if not is_done:
+                    q_values[i,actions[i]] += gamma * torch.max(q_values_next[i])
         
             # for state, action, next_state, reward, is_done in replay_data:
             #     states.append(state)
@@ -103,7 +105,7 @@ class DQN():
         @return: targeted Q values of the state for all actions
         """
         with torch.no_grad():
-            return self.model_target(torch.Tensor(s))
+            return self.model_target(torch.Tensor(s).to(self.device))
 
     def copy_target(self):
         """
@@ -111,7 +113,7 @@ class DQN():
         """
         self.model_target.load_state_dict(self.model.state_dict())
 
-    def save(self, episode_name):
+    def save_model(self, episode_name):
         """
         Save the model weights
         """
