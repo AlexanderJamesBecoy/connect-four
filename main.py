@@ -48,12 +48,11 @@ def q_learning(env, estimator:DQN, n_episode, replay_size, target_update=10, gam
             total_reward_episode[episode] += reward
             memory.append((state.flatten(), rand_action, next_state.flatten(), reward, is_done))
 
-            estimator.replay(memory, replay_size, gamma)
-
             if is_done:
                 break
 
-            # estimator.replay(memory, replay_size, gamma)
+            estimator.replay(memory, replay_size, gamma)
+            
             state = next_state
             step += 1
 
@@ -68,7 +67,6 @@ def q_learning(env, estimator:DQN, n_episode, replay_size, target_update=10, gam
 
             estimator.replay(memory, replay_size, gamma)
 
-            # estimator.replay(memory, replay_size, gamma)
             state = next_state
             step += 1
         
