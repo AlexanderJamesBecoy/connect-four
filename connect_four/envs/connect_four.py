@@ -46,6 +46,9 @@ class ConnectFour(gym.Env):
         # We have 7 actions corresponding to horizontal slots, and 2 players.
         self.action_space = spaces.Discrete(self._WIDTH)
 
+        # Player 1 starts at first game.
+        self._player_1_start = True
+
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
@@ -72,11 +75,17 @@ class ConnectFour(gym.Env):
         super().reset(seed=seed)
 
         # Reset the Connect Four board into an empty board, hence containing only zeros.
-        self._board = np.zeros(shape=(self._HEIGHT,self._WIDTH),dtype=np.uint8) # TODO
-        # self._board = self.observation_space.sample()
-        self._turn = 1 # Player 1 starts
+        self._board = np.zeros(shape=(self._HEIGHT,self._WIDTH),dtype=np.uint8)
+        
         self._connect_found = False # Boolean to determine whether a connect four is created.
         self._connect_four = [] # A list to store the found connect four.
+
+        # Every new round, every other player starts
+        if self._player_1_start:
+            self._turn = 1
+        else:
+            self._turn = 2
+        self._player_1_start = not self._player_1_start # Other player starts next round
 
         observation = self._get_obs()
         info = self._get_info()
@@ -87,54 +96,46 @@ class ConnectFour(gym.Env):
         return observation, info
 
     def step(self, action):
-        reward = 0.0
+        rewards = [0.0, 0.0]
         is_done = False
 
         # Punish for choosing a full column
         if np.count_nonzero(self._board[:,action] == 0) == 0:
-            if self._turn == 2:
-                reward += reward_system['overflow']
-            # observation = self._get_obs()
-            # info = self._get_info()
+            rewards = (reward_system['overflow'], 0.0)
+            observation = self._get_obs()
+            info = self._get_info()
+            return observation, rewards, False, False, info
+        
+        # Get new position of newly-placed token
+        new_token = self.set_token(action, self._turn)
 
-            # return observation, reward, True, False, info
-        else:
-            # Get new position of newly-placed token
-            new_token = self.set_token(action, self._turn)
+        # Extract lines
+        row = self.extract_line(new_token, axis='row')
+        col = self.extract_line(new_token, axis='col')
+        ldiag = self.extract_line(new_token, axis='ldiag')
+        rdiag = self.extract_line(new_token, axis='rdiag')
+        lines = {'row': row, 'col': col, 'ldiag': ldiag, 'rdiag': rdiag}
 
-            # Extract lines
-            row = self.extract_line(new_token, axis='row')
-            col = self.extract_line(new_token, axis='col')
-            ldiag = self.extract_line(new_token, axis='ldiag')
-            rdiag = self.extract_line(new_token, axis='rdiag')
-            lines = {'row': row, 'col': col, 'ldiag': ldiag, 'rdiag': rdiag}
-
-            # Get combos
-            combos = []
-            for line in lines:
-                combo, combo_idxs = self.find_combo(lines[line], self._turn)
-                if combo >= self._WIN_COMBO and not is_done:
-                    is_done = True
-                    # self._connect_found = True
-                    # if line == 'row':
-                    #     self._connect_four = [new_token[0], combo_idxs[:self._WIN_COMBO]]
-                    # elif line == 'col':
-                    #     self._connect_four = self._board[]
-
-                    if self._turn == 1:
-                        reward = reward_system['lose']
-                    else:
-                        reward = reward_system['win']
-                combos.append(combo)
-
-            # Modify reward
-            mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
-            if self._turn == 1:
-                mod_reward = -1*mod_reward
-            reward += mod_reward
-
-            if np.count_nonzero(self._board == 0) == 0:
+        # Get combos
+        combos = []
+        for line in lines:
+            combo, combo_idxs = self.find_combo(lines[line], self._turn)
+            if combo >= self._WIN_COMBO and not is_done:
                 is_done = True
+                rewards[0] += reward_system['win']
+                rewards[1] += reward_system['lose']
+            combos.append(combo)
+
+        # Modify reward
+        mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
+        if self._turn == 1:
+            mod_reward = -1*mod_reward
+        rewards[0] += mod_reward
+        rewards[1] -= mod_reward
+
+        # Check if the board is full
+        if np.count_nonzero(self._board == 0) == 0:
+            is_done = True
 
         # Switch players and finish
         if not is_done:
@@ -143,14 +144,15 @@ class ConnectFour(gym.Env):
             else:
                 self._turn = 1
 
+        # Obtain the observation and information of new state
         observation = self._get_obs()
         info = self._get_info()
 
+        # Render PyGame if applied
         if self.render_mode == "human":
             self._render_frame()
 
-        # Return
-        return observation, reward, is_done, False, info
+        return observation, rewards, is_done, False, info
 
     def render(self):
         if self.render_mode == "rgb_array":

@@ -32,8 +32,8 @@ def q_learning(env, estimator, n_episode, gamma=1.0):
 
             # Action of random agent
             rand_action = env.action_space.sample()
-            next_state, reward, is_done, _, _ = env.step(rand_action)
-            total_reward_episode[episode] += reward
+            next_state, rewards, is_done, _, _ = env.step(rand_action)
+            total_reward_episode[episode] += rewards[1]
 
             if is_done:
                 break
@@ -43,11 +43,11 @@ def q_learning(env, estimator, n_episode, gamma=1.0):
 
             # Action of learning agent
             action = policy(next_state.flatten())
-            next_state, reward, is_done, _, _ = env.step(action)
-            total_reward_episode[episode] += reward
+            next_state, rewards, is_done, _, _ = env.step(action)
+            total_reward_episode[episode] += rewards[0]
                 
             # estimator.update(state, action, reward, next_state, is_done)
-            estimator.remember(state.flatten(), action, next_state.flatten(), reward, is_done)
+            estimator.remember(state.flatten(), action, next_state.flatten(), rewards[0], is_done)
 
             if is_done:
                 break
