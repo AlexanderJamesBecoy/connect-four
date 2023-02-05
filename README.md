@@ -8,8 +8,12 @@ The decision-making aspect should enable the robot to make smart and tactical de
 
 ## TODO - Decision-making
 - [x] Create a PyGame environment for simulation
-- [ ] Debug plots displaying Q-values
-- [ ] Abstract class of DQN (should be polymorphable to dual, dueling, convolutional, etc.)
+    - [ ] New game, switch player start
+- [x] Abstract class of DQN
+    - [x] Debug plots displaying Q-values
+- [ ] Apply Monte Carlo Tree Search / Minimax Alpha-Beta Pruning
+- [ ] Train AI in simple setting (Connect 3)
+- [ ] Two DQN RL agents competing each other
 
 ## TODO - Mechatronics
 - [ ] 3D model of the game board
