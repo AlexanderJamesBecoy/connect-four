@@ -28,7 +28,7 @@ class ConnectFour(gym.Env):
     This class is based on the structure of gymlibrarydev's GridWorld: https://www.gymlibrary.dev/content/environment_creation/
     """
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
     def __init__(self, render_mode=None):
         self._WIDTH = connect['four']['width']

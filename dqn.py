@@ -1,136 +1,3 @@
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as Fd
-# from torch.autograd import Variable
-# import random
-# import copy
-# import numpy as np
-
-# """
-# TODO:
-#  - Debug mode
-#  - 
-# """
-
-# class DQN():
-#     def __init__(self, name, n_state, n_action, n_hidden=50, lr=0.05, weights=None, device='cpu', save=True, debug=False):
-#         self.name = name
-#         self.save_mode = save
-#         self.debug_mode = debug
-#         self.criterion = nn.MSELoss()
-
-#         if weights is None:
-#             self.model = nn.Sequential(
-#                 nn.Linear(n_state, n_hidden),
-#                 nn.ReLU(),
-#                 nn.Linear(n_hidden, n_hidden),
-#                 nn.ReLU(),
-#                 nn.Linear(n_hidden, n_hidden),
-#                 nn.ReLU(),
-#                 # nn.Linear(n_hidden, n_hidden),
-#                 # nn.ReLU(),
-#                 # nn.Linear(n_hidden, n_hidden),
-#                 # nn.ReLU(),
-#                 nn.Linear(n_hidden, n_hidden),
-#                 nn.ReLU(),
-#                 nn.Linear(n_hidden, n_action),
-#             )
-#         else:
-#             self.model = torch.load(weights)
-   
-#         self.optimizer = torch.optim.Adam(self.model.parameters(), lr)
-#         self.model_target = copy.deepcopy(self.model)
-
-#         if device == 'cuda':
-#             assert torch.cuda.is_available(), f'CUDA is not available on this device.'
-#         self.device = torch.device(device)
-#         print("Torch device: {}".format(self.device))
-
-#     def update(self, s, y):
-#     # def update(self, s, y_predict, y_target):
-#         """
-#         Update the weights of the DQN given a training sample
-#         @param s: state
-#         @param y: target value
-#         @return:
-#         """
-#         y_pred = self.model(torch.Tensor(s).to(self.device))
-#         loss = self.criterion(y_pred, Variable(torch.Tensor(y).to(self.device)))
-#         self.optimizer.zero_grad()
-#         loss.backward()
-#         self.optimizer.step()
-
-#     def predict(self, s):
-#         """
-#         Compute the Q values of the state for all actions using the learning model
-#         @param s: input state
-#         @return: Q values of the state for all actions
-#         """
-#         with torch.no_grad():
-#             return self.model(torch.Tensor(s).to(self.device))
-
-#     def replay(self, memory, replay_size, gamma):
-#         """
-#         Experience replay with target network
-#         @param memory: list of experience
-#         @param replay_size: the number of samples we use to update the model each time
-#         @param gamma: the discount factor
-#         """
-#         if len(memory) >= replay_size:
-#             states, actions, next_states, rewards, is_dones = zip(*random.sample(memory, replay_size))
-#             states = np.array(states)
-#             next_states = np.array(next_states)
-#             actions = list(actions)
-#             is_dones = list(is_dones)
-
-#             q_values = self.predict(states)
-#             # q_values_next = self.predict(next_states)                   # Single DQN
-#             q_values_next = self.target_predict(next_states).detach()   # Double DQNs
-#             q_values[:,actions] = torch.Tensor(rewards).to(self.device)
-#             for i, is_done in enumerate(is_dones):
-#                 if not is_done:
-#                     q_values[i,actions[i]] += gamma * torch.max(q_values_next[i])
-        
-#             # for state, action, next_state, reward, is_done in replay_data:
-#             #     states.append(state)
-#             #     q_values = self.predict(state).tolist()
-
-#             #     if is_done:
-#             #         q_values[action] = reward
-#             #     else:
-#             #         # q_values_next = self.target_predict(next_state).detach()
-#             #         q_values_next = self.predict(next_state)
-#             #         q_values[action] = reward + gamma * torch.max(q_values_next).item()
-#             #     
-#             #     td_targets.append(q_values)
-
-#             self.update(states, q_values)
-
-#             if self.debug_mode:
-#                 fig, axes = plt.subplots()
-
-#     def target_predict(self, s):
-#         """
-#         Compute the Q values of the state for all actions using the target network
-#         @param s: input state
-#         @return: targeted Q values of the state for all actions
-#         """
-#         with torch.no_grad():
-#             return self.model_target(torch.Tensor(s).to(self.device))
-
-#     def copy_target(self):
-#         """
-#         Synchronize the weights of the target network
-#         """
-#         self.model_target.load_state_dict(self.model.state_dict())
-
-#     def save_model(self, episode_name):
-#         """
-#         Save the model weights
-#         """
-#         assert self.save_mode, "Save mode is not activated. Activate this during __init__() with save=True before using this method."
-#         torch.save(self.model, 'models/model_{}_weights_{}.pth'.format(self.name, episode_name))
-
 import torch
 from torch.autograd import Variable
 import random
@@ -139,8 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 
+
+
 class DQN():
-    def __init__(self, name, model, n_action, criterion, alpha, gamma, epsilon, epsilon_decay, device, save, debug):
+    def __init__(self, name, model, n_action, criterion, alpha, gamma, device, save, debug):
         """
         Initialize the deep Q-learning network
         @param name             - the name of this DQN instance
@@ -155,8 +24,6 @@ class DQN():
         """
         self.name = name
         self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
 
         # Load the model, loss function and optimizer
         self.criterion = criterion
@@ -174,6 +41,7 @@ class DQN():
             rolling_reward = 0.0
             history_rewards = deque(maxlen=50)
 
+        self.debug_mode = debug
         if debug:
             self.figure, (self.ax1, self.ax2) = plt.subplots(2, 1)
 
@@ -185,8 +53,8 @@ class DQN():
 
             self.debug_states = deque(maxlen=50)
             self.debug_qms = [deque(maxlen=50),deque(maxlen=50)]
-            self.qmin_plot, = self.ax2.plot(self.debug_states, self.debug_qms[0], color='blue')
-            self.qmax_plot, = self.ax2.plot(self.debug_states, self.debug_qms[1], color='red')
+            self.qmin_plot, = self.ax2.plot(self.debug_states, self.debug_qms[0], color='blue', label='Q-max')
+            self.qmax_plot, = self.ax2.plot(self.debug_states, self.debug_qms[1], color='red', label='Q-min')
             self.ax2.set_xlabel('State')
             self.ax2.set_ylabel('Q-value')
             self.ax2.set_title('Q-min and Q-max for the last 50 states')
@@ -239,9 +107,9 @@ class DQN():
 
     def display_qvalues(self, q_values):
         """
+        Display the set of q-values of a given state as a bar graph, and the Q-min and Q-max value for the last 50 states.
+        @q_values   - set of q_values
         """
-        self.figure.canvas.flush_events()
-
         if len(self.debug_states) > 0:
             state_idx = self.debug_states[-1] + 1
             self.debug_states.append(state_idx)
@@ -266,10 +134,11 @@ class DQN():
                 bar.set_color('red')
         
         self.figure.canvas.draw()
-        plt.pause(0.001)
+        self.figure.canvas.flush_events()
+        plt.pause(1.e-9)
 
 class ExpDQN(DQN):
-    def __init__(self, name, model, criterion, alpha, gamma, epsilon, epsilon_decay, save=False, debug=False):
+    def __init__(self, name, model, n_action, criterion, alpha, gamma, device, replay_size=20, memory_size=10000, save=False, debug=False):
         """
         Initialize a double deep Q-learning network
         @param name         - the name of this DQN instance
@@ -279,11 +148,11 @@ class ExpDQN(DQN):
         @param save         - enable saving this DQN instance's model
         @param debug        - enable debug displaying plots of rewards and Q-values
         """
-        super.__init__(name, model, criterion, alpha, gamma, epsilon, epsilon_decay, save=False, debug=False)
-        
         # Declare the variable defining the minimal replay size, and memory of past experience
         self.replay_size = replay_size
         self.memory = deque(maxlen=memory_size)
+        
+        super().__init__(name, model, n_action, criterion, alpha, gamma, device, save, debug)
 
     def update(self, state, y_target):
         """
@@ -326,10 +195,10 @@ class ExpDQN(DQN):
                 if not is_done:
                     q_values[i,actions[i]] += self.gamma * torch.max(q_values_next[i])
 
-        self.update(states, q_values)
+            self.update(states, q_values)
 
 class DoubleDQN(ExpDQN):
-    def __init__(self, name, model, criterion, alpha, gamma, epsilon, epsilon_decay, save=False, debug=False):
+    def __init__(self, name, model, n_action, criterion, alpha, gamma, device, replay_size=20, memory_size=10000, target_update=10, save=False, debug=False):
         """
         Initialize a double deep Q-learning network
         @param name         - the name of this DQN instance
@@ -339,8 +208,30 @@ class DoubleDQN(ExpDQN):
         @param save         - enable saving this DQN instance's model
         @param debug        - enable debug displaying plots of rewards and Q-values
         """
-        super.__init__(name, model, criterion, alpha, gamma, epsilon, epsilon_decay, save=False, debug=False)
+        super().__init__(name, model, n_action, criterion, alpha, gamma, device, replay_size, memory_size, save, debug)
+        self.target_update = target_update
         self.model_target = copy.deepcopy(self.model)
+
+        if debug:
+            self.debug_double, (self.debug_double_ax1, self.debug_double_ax2) = plt.subplots(2, 1)
+
+            self.debug_double_bars_model = self.ax1.bar(range(1,n_action+1), np.zeros(n_action), label='model')
+            self.debug_double_bars_target = self.ax1.bar(range(1,n_action+1), np.zeros(n_action), label='target')
+            self.debug_double_ax1.set_ylim(bottom=-1.0, top=1.0)
+            self.debug_double_ax1.set_xlabel('Action')
+            self.debug_double_ax1.set_ylabel('Q-value')
+            self.debug_double_ax1.legend()
+            self.debug_double_ax1.set_title('Q-values for the set of actions')
+
+            self.debug_double_states = deque(maxlen=50)
+            self.debug_double_qms = [deque(maxlen=50),deque(maxlen=50)]
+            self.debug_double_qmin_plot, = self.ax2.plot(self.debug_states, self.debug_qms[0], color='blue', label='Q-max')
+            self.debug_double_qmax_plot, = self.ax2.plot(self.debug_states, self.debug_qms[1], color='red', label='Q-min')
+            self.debug_double_ax2.set_xlabel('State')
+            self.debug_double_ax2.set_ylabel('Q-value')
+            self.debug_double_ax2.set_title('Q-min and Q-max for the last 50 states')
+
+            plt.tight_layout()
 
     def target_predict(self, state):
         """
@@ -375,4 +266,45 @@ class DoubleDQN(ExpDQN):
                 if not is_done:
                     q_values[i,actions[i]] += self.gamma * torch.max(q_values_next[i])
 
-        self.update(states, q_values)
+            # if self.debug_mode:
+            #     self.display_double_qvalues(q_values, q_values_next)
+
+            self.update(states, q_values)
+
+    def display_double_qvalues(self, q_values_model, q_values_target):
+        """
+        Display the set of q-values of a given state as a bar graph, and the Q-min and Q-max value for the last 50 states.
+        @q_values   - set of q_values
+        """
+        if len(self.debug_double_states) > 0:
+            state_idx = self.debug_double_states[-1] + 1
+            self.debug_double_states.append(state_idx)
+        else:
+            self.debug_double_states.append(0)
+        q_means_model = torch.mean(copy.deepcopy(q_values_model), 0)
+        q_means_target = torch.mean(copy.deepcopy(q_values_target), 0)
+        q_min_model = min(q_means_model)
+        q_max_model = max(q_means_model)
+        q_min_target = min(q_means_target)
+        q_max_target = max(q_means_target)
+        self.debug_double_qms[0].append(q_min_model)
+        self.debug_double_qms[1].append(q_max_model)
+
+        self.debug_double_qmin_plot.set_xdata(self.debug_states)
+        self.debug_double_qmin_plot.set_ydata(self.debug_qms[0])
+        self.debug_double_qmax_plot.set_xdata(self.debug_states)
+        self.debug_double_qmax_plot.set_ydata(self.debug_qms[1])
+        self.debug_double_ax2.relim()
+        self.debug_double_ax2.autoscale_view()
+
+        for bar_model, bar_target, q_value_model, q_value_target in zip(self.debug_double_bars_model, self.debug_double_bars_target, q_means_model, q_means_target):
+            bar_model.set_height(q_value_model)
+            bar_model.set_color('gray')
+            if q_value_model == q_max_model:
+                bar_model.set_color('red')
+            bar_target.set_height(q_value_target)
+            bar_target.set_color('blue')
+        
+        self.debug_double.canvas.draw()
+        self.debug_double.canvas.flush_events()
+        plt.pause(1.e-9)

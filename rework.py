@@ -1,11 +1,11 @@
 import gym
 import connect_four
 import numpy as np
-from model import Model_v0
+from model import Model
 
 env = gym.make("connect_four/ConnectFour-v0", render_mode="human")
 
-def q_learning(env, estimator: Model_v0, n_episode, gamma=1.0, epsilon=0.1, epsilon_decay=0.99):
+def q_learning(env, estimator, n_episode, gamma=1.0):
     """
     Deep Q-Learning using DQN
     @param env: Gym environment
@@ -19,8 +19,11 @@ def q_learning(env, estimator: Model_v0, n_episode, gamma=1.0, epsilon=0.1, epsi
     """
     rolling_reward = 0
     full_columns = 0
+
+    policy = estimator.epsilon_greedy_policy(epsilon=0.9, epsilon_decay=0.95, min_epsilon=0.01)
+    
     for episode in range(n_episode):
-        policy = estimator.epsilon_greedy_policy()
+        estimator.update_target(episode)
         state, _ = env.reset()
         is_done = False
         step = 0
@@ -43,14 +46,20 @@ def q_learning(env, estimator: Model_v0, n_episode, gamma=1.0, epsilon=0.1, epsi
             next_state, reward, is_done, _, _ = env.step(action)
             total_reward_episode[episode] += reward
                 
-            estimator.update(state, action, reward, next_state, is_done)
+            # estimator.update(state, action, reward, next_state, is_done)
+            estimator.remember(state.flatten(), action, next_state.flatten(), reward, is_done)
+
+            if is_done:
+                break
+                            
+            estimator.replay()
 
             state = next_state
             step += 1
         
         rolling_reward = rolling_reward *0.9 + total_reward_episode[episode]*0.1
-        print('Episode: {}, rolling_reward {:.2f}, total reward: {:.2f}, epsilon: {}, number of steps: {}, full columns: {}'.format(
-            episode, rolling_reward,total_reward_episode[episode], epsilon, step, full_columns
+        print('Episode: {}, rolling_reward {:.2f}, total reward: {:.2f}, number of steps: {}, full columns: {}'.format(
+            episode, rolling_reward,total_reward_episode[episode], step, full_columns
         ))
         full_columns = 0
 
@@ -66,7 +75,7 @@ def q_learning(env, estimator: Model_v0, n_episode, gamma=1.0, epsilon=0.1, epsi
         #                 file.write('{}\n'.format(total_reward_episode[i]))
         #             file.close()
 
-        epsilon = max(epsilon * epsilon_decay, 0.05)
+        # epsilon = max(epsilon * epsilon_decay, 0.05)
         if total_reward_episode[episode] < -1.5:
             full_columns += 1
 
@@ -76,7 +85,7 @@ n_episode = 100
 total_reward_episode = [0] * n_episode
 n_hidden = 256
 lr = 3.0e-4
-dqn = Model_v0(None, n_state, n_action, n_hidden, lr, gamma=0.95, epsilon=0.1, epsilon_decay=0.95, device='cpu', save=False, debug=True)
+dqn = Model(None, n_state, n_action, n_hidden, lr, gamma=0.95, device='cpu', save=False, debug=True)
 
 q_learning(env, dqn, n_episode)
 
