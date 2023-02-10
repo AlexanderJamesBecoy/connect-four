@@ -3,7 +3,7 @@ import connect_four
 import numpy as np
 from model import Model
 
-env = gym.make("connect_four/ConnectFour-v0", render_mode="human")
+env = gym.make("connect_four/ConnectFour-v0") # , render_mode="human"
 
 def q_learning(env, estimators, n_episode):
     """
