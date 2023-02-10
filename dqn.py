@@ -33,6 +33,9 @@ class DQN():
         # Execute PyTorch tensor calculation on CPU or GPU (CUDA)
         if device == 'cuda':
             assert torch.cuda.is_available(), f'CUDA is not available on this device.'
+            import os
+            os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+            self.model = self.model.to(device)
         self.device = torch.device(device)
         print("PyTorch execution on device: {}".format(self.device))
 
@@ -161,7 +164,7 @@ class ExpDQN(DQN):
         @param y_target - target value
         """
         y_pred = self.model(torch.Tensor(state).to(self.device))
-        loss = self.criterion(y_pred, Variable(torch.Tensor(y_target).to(self.device)))
+        loss = self.criterion(y_pred, Variable(torch.tensor(y_target).to(self.device)))
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

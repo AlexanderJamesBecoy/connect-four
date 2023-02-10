@@ -2,6 +2,7 @@ import gym
 import connect_four
 import numpy as np
 from model import Model
+import time
 
 env = gym.make("connect_four/ConnectFour-v0") # , render_mode="human"
 
@@ -19,10 +20,11 @@ def q_learning(env, estimators, n_episode):
     """
     rolling_rewards = [0, 0]
     full_columns = [0, 0]
+    start_time = time.time()
 
     policies = [
-        estimators[0].epsilon_greedy_policy(epsilon=0.9, epsilon_decay=0.95, min_epsilon=0.01),
-        estimators[1].epsilon_greedy_policy(epsilon=0.9, epsilon_decay=0.95, min_epsilon=0.01)
+        estimators[0].epsilon_greedy_policy(epsilon=0.99, epsilon_decay=0.995, min_epsilon=0.01),
+        estimators[1].epsilon_greedy_policy(epsilon=0.99, epsilon_decay=0.995, min_epsilon=0.01)
     ]
     
     for episode in range(n_episode):
@@ -58,10 +60,14 @@ def q_learning(env, estimators, n_episode):
         
         rolling_rewards[0] = rolling_rewards[0] *0.9 + total_rewards_episode[0][episode]*0.1
         rolling_rewards[1] = rolling_rewards[1] *0.9 + total_rewards_episode[1][episode]*0.1
-        print('Episode: {}, rolling_reward {}, number of steps: {}, full columns: {}'.format(
-            episode, rolling_rewards, step, full_columns
-        ))
+        time_diff = round((time.time() - start_time) * 1000, 2)
+
+        if (episode + 1) % 100 == 0:
+            print('Episode: {}, rolling_reward {}, number of steps: {}, full columns: {}, time: {} ms'.format(
+                episode, rolling_rewards, step, full_columns, time_diff
+            ))
         full_columns = [0,0]
+        start_time = time.time()
 
         if estimators[0].save_mode or estimators[1].save_mode:
             if (episode + 1) % 1000000 == 0:
@@ -71,10 +77,10 @@ def q_learning(env, estimators, n_episode):
                 for i in range(no_players):
                     estimators[i].save_model(episode_name)
 
-                    filename = 'total_reward_episode_{}_{}.txt'.format(estimator.name, episode_name)
+                    filename = 'rewards/total_reward_episode_{}_{}.txt'.format(estimators[i].name, episode_name)
                     with open(filename, 'w') as file:
                         for j in range(episode + 1):
-                            file.write('{}\n'.format(total_rewards_episodes[i][j]))
+                            file.write('{}\n'.format(total_rewards_episode[i][j]))
                         file.close()
 
         if total_rewards_episode[0][episode] < -1.5:
@@ -84,7 +90,7 @@ def q_learning(env, estimators, n_episode):
 
 n_state = np.prod(env.observation_space.shape) * 2
 n_action = env.action_space.n
-n_episode = 100
+n_episode = int(10e6)
 total_rewards_episode = [
     [0] * n_episode,
     [0] * n_episode,
@@ -93,8 +99,8 @@ n_hidden = 256
 lr = 3.0e-4
 
 dqns = [
-    Model('expDQN_p1', None, n_state, n_action, n_hidden, lr, gamma=0.85, device='cuda', save=False, debug=True),
-    Model('expDQN_p2', None, n_state, n_action, n_hidden, lr, gamma=0.95, device='cuda', save=False, debug=True),
+    Model('expDQN_p1', None, n_state, n_action, n_hidden, lr, gamma=0.85, device='cuda', save=True, debug=False),
+    Model('expDQN_p2', None, n_state, n_action, n_hidden, lr, gamma=0.95, device='cuda', save=True, debug=False),
 ]
 no_players = len(dqns)
 q_learning(env, dqns, n_episode)
