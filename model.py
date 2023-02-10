@@ -6,9 +6,9 @@ from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
 
-class Model(DoubleDQN):
-    def __init__(self, weights, n_state, n_action, n_hidden, alpha, gamma, device='cpu', save=False, debug=False):
-        self.name = 'DQN_v0'
+class Model(ExpDQN):
+    def __init__(self, name, weights, n_state, n_action, n_hidden, alpha, gamma, device='cpu', save=False, debug=False):
+        self.name = name
         self.criterion = nn.MSELoss()
         self.n_state = n_state
         self.n_action = n_action

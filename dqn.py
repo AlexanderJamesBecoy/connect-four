@@ -49,7 +49,7 @@ class DQN():
             self.ax1.set_ylim(bottom=-1.0, top=1.0)
             self.ax1.set_xlabel('Action')
             self.ax1.set_ylabel('Q-value')
-            self.ax1.set_title('Q-values for the set of actions')
+            self.ax1.set_title('{}\'s Q-values for the set of actions'.format(self.name))
 
             self.debug_states = deque(maxlen=50)
             self.debug_qms = [deque(maxlen=50),deque(maxlen=50)]
@@ -57,7 +57,7 @@ class DQN():
             self.qmax_plot, = self.ax2.plot(self.debug_states, self.debug_qms[1], color='red', label='Q-min')
             self.ax2.set_xlabel('State')
             self.ax2.set_ylabel('Q-value')
-            self.ax2.set_title('Q-min and Q-max for the last 50 states')
+            self.ax2.set_title('{}\'s Q-min and Q-max for the last 50 states'.format(self.name))
 
             plt.tight_layout()
 

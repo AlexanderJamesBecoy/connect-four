@@ -8,14 +8,14 @@ The decision-making aspect should enable the robot to make smart and tactical de
 
 ## TODO - Decision-making
 - [x] Create a PyGame environment for simulation
-    - [ ] New game, switch player start
+    - [x] New game, switch player start
 - [x] Abstract class of DQN
     - [x] Debug plots displaying Q-values
 - [ ] Apply Monte Carlo Tree Search / Minimax Alpha-Beta Pruning
 - [ ] Train AI in simple setting (Connect 3)
-- [ ] Two DQN RL agents competing each other
+- [ ] Two RL agents competing each other
 
 ## TODO - Mechatronics
-- [ ] 3D model of the game board
-- [ ] Design token dropper
+- [x] 3D model of the game board
+- [x] Design token dropper
 - [ ] Design axis movement

@@ -126,12 +126,12 @@ class ConnectFour(gym.Env):
                 rewards[1] += reward_system['lose']
             combos.append(combo)
 
-        # Modify reward
-        mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
-        if self._turn == 1:
-            mod_reward = -1*mod_reward
-        rewards[0] += mod_reward
-        rewards[1] -= mod_reward
+        # # Modify reward
+        # mod_reward = np.sum(np.array(combos) - 1.0)*1.0e-3
+        # if self._turn == 1:
+        #     mod_reward = -1*mod_reward
+        # rewards[0] += mod_reward
+        # rewards[1] -= mod_reward
 
         # Check if the board is full
         if np.count_nonzero(self._board == 0) == 0:
@@ -282,3 +282,19 @@ class ConnectFour(gym.Env):
             row += 1
         self._board[row, action] = color
         return (row, action)
+
+    def state_to_binary(self, state):
+        """
+        Add binary channels to the state each describing whether or not for player 1 or 2's token in each
+        grid exists, respectively. E.g. [0,0] = None, [1,0] = Player 1, [0,1] = Player 2, [1,1] = Illegal
+        @param state            - current game state in 7x6
+        @return converted_state - current game state in 7x6x2
+        """
+        converted_state = np.zeros((self._HEIGHT, self._WIDTH, self._NUMBER_OF_PLAYERS))
+        for i in range(self._HEIGHT):
+            for j in range(self._WIDTH):
+                if state[i,j] == 0:
+                    continue
+                player = state[i,j]-1
+                converted_state[i,j,player] = 1
+        return converted_state
